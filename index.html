@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bubble Sort — D3 Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root{
+      --bg: #0f1724;
+      --panel: #0b1220;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --control-bg: #071026;
+      --card-bg: #071026;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: Inter, Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#071127 0%, #07172a 100%);
+      color: #e6eef8;
+    }
+    .app {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 18px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+    }
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    header h1{
+      font-size:18px;
+      margin:0;
+      letter-spacing:0.2px;
+    }
+    .controls {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .controls .group {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      background: var(--control-bg);
+      padding:8px;
+      border-radius:8px;
+    }
+    button {
+      background: var(--accent);
+      border:none;
+      color:white;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button.secondary {
+      background: transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--muted);
+      padding:6px 10px;
+      font-weight:600;
+    }
+    input[type="range"] {
+      accent-color: #60a5fa;
+    }
+    label { font-size:12px; color:var(--muted); }
+    .viz {
+      display:flex;
+      gap:18px;
+      margin-top:18px;
+      align-items:flex-start;
+    }
+    .chart {
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      padding:12px;
+      border-radius:10px;
+      flex:1 1 auto;
+    }
+    .stats {
+      width:240px;
+      min-width:200px;
+      background: var(--card-bg);
+      padding:12px;
+      border-radius:10px;
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .stat-row { display:flex; justify-content:space-between; }
+    .op-text { color:#fff; font-weight:700; font-size:14px; }
+    footer { margin-top:12px; color:var(--muted); font-size:13px; }
+    .small { font-size:12px; color:var(--muted); }
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      pointer-events:none;
+      background: rgba(9,11,27,0.95);
+      color:white;
+      padding:6px 8px;
+      font-size:12px;
+      border-radius:6px;
+      transform: translate(-50%, -120%);
+      box-shadow: 0 8px 24px rgba(2,6,23,0.6);
+      display:none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="main">
+    <header>
+      <h1>Bubble Sort — D3 visualization</h1>
+      <div class="controls" aria-label="Controls">
+        <div class="group">
+          <button id="btn-generate" title="Generate new array">Generate</button>
+          <button id="btn-play" title="Play / Pause">Play</button>
+          <button id="btn-step" class="secondary" title="Advance one step">Step</button>
+          <button id="btn-reset" class="secondary" title="Reset to unsorted">Reset</button>
+        </div>
+
+        <div class="group" style="padding:6px 10px;">
+          <div style="display:flex;flex-direction:column">
+            <label for="size">Size <span id="size-val">20</span></label>
+            <input id="size" type="range" min="5" max="120" value="20">
+          </div>
+        </div>
+
+        <div class="group" style="padding:6px 10px;">
+          <div style="display:flex;flex-direction:column">
+            <label for="speed">Speed (ms) <span id="speed-val">150</span></label>
+            <input id="speed" type="range" min="10" max="1000" step="10" value="150">
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <div class="viz">
+      <div class="chart" id="chart" aria-label="Sorting visualization">
+        <!-- SVG appended here -->
+      </div>
+
+      <aside class="stats" aria-label="Statistics and status">
+        <div class="stat-row">
+          <div class="small">Operation</div>
+          <div class="op-text" id="op-text">idle</div>
+        </div>
+        <div class="stat-row">
+          <div class="small">Comparisons</div>
+          <div id="comp-count">0</div>
+        </div>
+        <div class="stat-row">
+          <div class="small">Swaps</div>
+          <div id="swap-count">0</div>
+        </div>
+        <div class="stat-row">
+          <div class="small">Pass</div>
+          <div id="pass-count">0</div>
+        </div>
+        <div style="height:8px"></div>
+        <div class="small">Legend</div>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;align-items:center"><div style="width:18px;height:10px;background:#2563eb;border-radius:3px"></div><div class="small">Idle</div></div>
+          <div style="display:flex;gap:6px;align-items:center"><div style="width:18px;height:10px;background:gold;border-radius:3px"></div><div class="small">Comparing</div></div>
+          <div style="display:flex;gap:6px;align-items:center"><div style="width:18px;height:10px;background:crimson;border-radius:3px"></div><div class="small">Swapping</div></div>
+          <div style="display:flex;gap:6px;align-items:center"><div style="width:18px;height:10px;background:seagreen;border-radius:3px"></div><div class="small">Sorted</div></div>
+        </div>
+        <div style="flex:1"></div>
+        <div class="small">Tip: Use Step to walk through individual compare/swap actions.</div>
+      </aside>
+    </div>
+
+    <footer>
+      <div class="small">Save this file and open it in your browser. Uses D3 v7 (CDN).</div>
+    </footer>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    // Bubble Sort visualization (D3)
+    (function(){
+      const svgWidth = 820;
+      const svgHeight = 420;
+      const margin = {top: 18, right: 12, bottom: 18, left: 12};
+      const chartW = svgWidth - margin.left - margin.right;
+      const chartH = svgHeight - margin.top - margin.bottom;
+
+      // DOM
+      const chartEl = d3.select('#chart');
+      const btnGenerate = document.getElementById('btn-generate');
+      const btnPlay = document.getElementById('btn-play');
+      const btnStep = document.getElementById('btn-step');
+      const btnReset = document.getElementById('btn-reset');
+      const sizeInput = document.getElementById('size');
+      const sizeVal = document.getElementById('size-val');
+      const speedInput = document.getElementById('speed');
+      const speedVal = document.getElementById('speed-val');
+      const opText = document.getElementById('op-text');
+      const compCountEl = document.getElementById('comp-count');
+      const swapCountEl = document.getElementById('swap-count');
+      const passCountEl = document.getElementById('pass-count');
+      const tooltip = d3.select('#tooltip');
+
+      // SVG
+      const svg = chartEl.append('svg')
+        .attr('width', svgWidth)
+        .attr('height', svgHeight)
+        .style('display','block');
+
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      // State
+      let arr = [];
+      let originalArr = [];
+      let steps = []; // computed steps: {action:'compare'|'swap'|'done', i, j, snapshot}
+      let frame = 0;
+      let playing = false;
+      let timer = null;
+      let comparisons = 0;
+      let swaps = 0;
+      let currentPass = 0;
+
+      // Colors
+      const colors = {
+        idle: '#2563eb',      // blue
+        compare: 'gold',      // golden
+        swap: 'crimson',      // red
+        done: 'seagreen'      // green
+      };
+
+      // Controls initial values
+      sizeVal.textContent = sizeInput.value;
+      speedVal.textContent = speedInput.value;
+
+      // Helpers
+      function randomArray(n) {
+        // generate values 1..n*4 to give nicer variety
+        return Array.from({length:n}, () => Math.floor(Math.random()* (n*4) ) + 1);
+      }
+
+      function computeSteps(input) {
+        // returns array of steps; snapshots are copies of array
+        const a = input.slice();
+        const n = a.length;
+        const out = [];
+        if(n <= 1) {
+          out.push({action:'done', i:-1, j:-1, snapshot: a.slice()});
+          return out;
+        }
+        for (let pass = 0; pass < n - 1; pass++) {
+          let madeSwap = false;
+          for (let j = 0; j < n - pass - 1; j++) {
+            out.push({action:'compare', i:j, j:j+1, snapshot: a.slice(), pass});
+            if (a[j] > a[j+1]) {
+              // swap
+              const tmp = a[j];
+              a[j] = a[j+1];
+              a[j+1] = tmp;
+              madeSwap = true;
+              out.push({action:'swap', i:j, j:j+1, snapshot: a.slice(), pass});
+            }
+          }
+          if (!madeSwap) break;
+        }
+        out.push({action:'done', i:-1, j:-1, snapshot: a.slice(), pass: n-1});
+        return out;
+      }
+
+      // Scales (will be updated per array)
+      let xScale = d3.scaleBand().padding(0.15);
+      let yScale = d3.scaleLinear();
+
+      // Render initial (empty)
+      function renderInit(values) {
+        xScale.domain(d3.range(values.length)).range([0, chartW]);
+        yScale.domain([0, d3.max(values) || 1]).range([0, chartH]); // height mapping
+
+        // Bars group
+        const bars = g.selectAll('g.bar').data(values, (d,i) => i);
+
+        const barsEnter = bars.enter().append('g').attr('class','bar')
+          .attr('transform', (d,i) => `translate(${xScale(i)},0)`);
+
+        barsEnter.append('rect')
+          .attr('x', 0)
+          .attr('y', d => chartH - yScale(d))
+          .attr('width', xScale.bandwidth())
+          .attr('height', d => yScale(d))
+          .attr('fill', colors.idle)
+          .attr('stroke', '#071227')
+          .attr('rx', 4);
+
+        barsEnter.append('text')
+          .attr('class','label')
+          .attr('x', xScale.bandwidth()/2)
+          .attr('y', d => chartH - yScale(d) - 6)
+          .attr('text-anchor','middle')
+          .attr('fill','#e6eef8')
+          .attr('font-size', Math.max(9, Math.min(14, xScale.bandwidth()*0.4)))
+          .text(d=>d);
+
+        bars.exit().remove();
+      }
+
+      function updateBars(snapshot, highlight = {}) {
+        // highlight: {type:'compare'|'swap'|'done'|'idle', i, j}
+        xScale.domain(d3.range(snapshot.length)).range([0, chartW]);
+        yScale.domain([0, d3.max(snapshot) || 1]).range([0, chartH]);
+
+        // Data join
+        const sel = g.selectAll('g.bar').data(snapshot, (d,i) => i);
+
+        // Enter
+        const enter = sel.enter().append('g').attr('class','bar')
+          .attr('transform', (d,i) => `translate(${xScale(i)},0)`);
+
+        enter.append('rect')
+          .attr('x', 0)
+          .attr('y', d => chartH - yScale(d))
+          .attr('width', xScale.bandwidth())
+          .attr('height', d => yScale(d))
+          .attr('fill', colors.idle)
+          .attr('stroke', '#071227')
+          .attr('rx', 4);
+
+        enter.append('text')
+          .attr('class','label')
+          .attr('x', xScale.bandwidth()/2)
+          .attr('y', d => chartH - yScale(d) - 6)
+          .attr('text-anchor','middle')
+          .attr('fill','#e6eef8')
+          .attr('font-size', Math.max(9, Math.min(14, xScale.bandwidth()*0.4)))
+          .text(d=>d);
+
+        // Update + transitions
+        const t = svg.transition().duration(Math.max(60, +speedInput.value * 0.7)).ease(d3.easeCubicOut);
+
+        sel.merge(enter)
+          .transition(t)
+          .attr('transform', (d,i) => `translate(${xScale(i)},0)`);
+
+        sel.merge(enter).select('rect')
+          .transition(t)
+          .attr('y', d => chartH - yScale(d))
+          .attr('height', d => yScale(d))
+          .attr('width', xScale.bandwidth())
+          .attr('fill', (d,i) => {
+            if (highlight && (i === highlight.i || i === highlight.j)) {
+              if (highlight.type === 'compare') return colors.compare;
+              if (highlight.type === 'swap') return colors.swap;
+            }
+            if (highlight && highlight.type === 'done') return colors.done;
+            return colors.idle;
+          });
+
+        sel.merge(enter).select('text')
+          .transition(t)
+          .attr('x', xScale.bandwidth()/2)
+          .attr('y', d => chartH - yScale(d) - 6)
+          .text(d=>d)
+          .attr('font-size', Math.max(8, Math.min(14, xScale.bandwidth()*0.38)));
+
+        sel.exit().remove();
+      }
+
+      // Animation control
+      function resetStats() {
+        comparisons = 0;
+        swaps = 0;
+        currentPass = 0;
+        compCountEl.textContent = comparisons;
+        swapCountEl.textContent = swaps;
+        passCountEl.textContent = currentPass;
+      }
+
+      function setOpText(text) {
+        opText.textContent = text;
+      }
+
+      function prepareArray(n) {
+        arr = randomArray(n);
+        originalArr = arr.slice();
+        steps = computeSteps(arr);
+        frame = 0;
+        resetStats();
+        setOpText('idle');
+        renderInit(arr);
+      }
+
+      function renderFrame(idx) {
+        if (idx < 0 || idx >= steps.length) return;
+        const s = steps[idx];
+        const snapshot = s.snapshot;
+        let highlight = null;
+        if (s.action === 'compare') {
+          highlight = {type:'compare', i:s.i, j:s.j};
+          setOpText(`Comparing indices ${s.i} ↔ ${s.j}`);
+        } else if (s.action === 'swap') {
+          highlight = {type:'swap', i:s.i, j:s.j};
+          setOpText(`Swapped indices ${s.i} ↔ ${s.j}`);
+        } else if (s.action === 'done') {
+          highlight = {type:'done'};
+          setOpText('Sorted ✔');
+        } else {
+          setOpText(s.action);
+        }
+        // update stats counters based on what's happened up to and including this frame
+        // We will recompute counts by scanning frames up to idx
+        let comps = 0, sws = 0, pass = (s.pass !== undefined ? s.pass : 0);
+        for (let k = 0; k <= idx; k++) {
+          if (steps[k].action === 'compare') comps++;
+          if (steps[k].action === 'swap') sws++;
+        }
+        comparisons = comps;
+        swaps = sws;
+        currentPass = pass + 1;
+        compCountEl.textContent = comparisons;
+        swapCountEl.textContent = swaps;
+        passCountEl.textContent = currentPass;
+
+        updateBars(snapshot, highlight);
+      }
+
+      // Play loop using async/await and delay
+      function delay(ms) {
+        return new Promise(res => setTimeout(res, ms));
+      }
+
+      async function playLoop() {
+        if (playing) return;
+        playing = true;
+        btnPlay.textContent = 'Pause';
+        while (playing && frame < steps.length) {
+          renderFrame(frame);
+          // When next frame is a swap/compare/done, wait for speed. We let the transition run too.
+          frame++;
+          await delay(+speedInput.value);
+          // if user toggled playing or changed steps, break handled by while cond
+        }
+        if (frame >= steps.length) {
+          // ensure final frame shows sorted state
+          renderFrame(steps.length - 1);
+          playing = false;
+          btnPlay.textContent = 'Play';
+        }
+      }
+
+      function pausePlay() {
+        playing = false;
+        btnPlay.textContent = 'Play';
+      }
+
+      // Button handlers
+      btnGenerate.addEventListener('click', () => {
+        const n = +sizeInput.value;
+        prepareArray(n);
+      });
+
+      btnPlay.addEventListener('click', async () => {
+        if (!steps || steps.length === 0) return;
+        if (playing) {
+          pausePlay();
+        } else {
+          // if we're at end, reset to start
+          if (frame >= steps.length) frame = 0;
+          await playLoop();
+        }
+      });
+
+      btnStep.addEventListener('click', () => {
+        if (!steps || steps.length === 0) return;
+        pausePlay();
+        if (frame >= steps.length) {
+          // already done, show last
+          renderFrame(steps.length - 1);
+          return;
+        }
+        renderFrame(frame);
+        frame++;
+      });
+
+      btnReset.addEventListener('click', () => {
+        pausePlay();
+        arr = originalArr.slice();
+        steps = computeSteps(arr);
+        frame = 0;
+        resetStats();
+        setOpText('idle');
+        renderInit(arr);
+      });
+
+      sizeInput.addEventListener('input', (e) => {
+        sizeVal.textContent = e.target.value;
+      });
+
+      speedInput.addEventListener('input', (e) => {
+        speedVal.textContent = e.target.value;
+      });
+
+      // Tooltip on hover
+      svg.on('mousemove', (event) => {
+        const [mx, my] = d3.pointer(event);
+        const bars = g.selectAll('g.bar').nodes();
+        for (let i = 0; i < bars.length; i++) {
+          const rect = bars[i].querySelector('rect');
+          const box = rect.getBoundingClientRect();
+          const svgBox = svg.node().getBoundingClientRect();
+          const rx = box.left - svgBox.left - margin.left;
+          const rw = box.width;
+          // Determine if mouse over this bar by x coord
+          if (mx >= rx && mx <= rx + rw) {
+            const label = bars[i].querySelector('text').textContent;
+            tooltip.style('display','block')
+              .style('left', (event.clientX) + 'px')
+              .style('top', (event.clientY) + 'px')
+              .html(`index: ${i}<br/>value: ${label}`);
+            return;
+          }
+        }
+        tooltip.style('display','none');
+      });
+
+      svg.on('mouseleave', () => tooltip.style('display','none'));
+
+      // Initialize with default array
+      prepareArray(+sizeInput.value);
+
+      // Make window responsive (basic)
+      window.addEventListener('resize', () => {
+        // (optionally recompute svg size; current version keeps fixed svg width)
+      });
+
+      // Expose a quick keyboard: space toggles play/pause, right arrow step
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          btnPlay.click();
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          btnStep.click();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
