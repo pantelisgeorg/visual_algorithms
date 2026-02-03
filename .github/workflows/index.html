@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Token Processing Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .flowchart-section {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .vector-section {
+            flex: 1;
+            min-width: 500px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .flow-step {
+            background: #ecf0f1;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .flow-step h3 {
+            color: #2980b9;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .flow-step .content {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .arrow {
+            text-align: center;
+            color: #3498db;
+            font-size: 24px;
+            height: 10px;
+        }
+
+        #vectorCanvas {
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+
+        .info-box h4 {
+            color: #2980b9;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-box .formula {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .calculation {
+            background: #fff9e6;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            min-height: 60px;
+        }
+
+        .calculation h4 {
+            color: #e67e22;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #999;
+        }
+
+        .instructions {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 13px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LLM Token Processing Visualization</h1>
+        <p class="subtitle">Understanding how "favourable food of the cat is" becomes a prediction</p>
+
+        <div class="main-content">
+            <!-- Flowchart Section -->
+            <div class="flowchart-section">
+                <h2>Processing Pipeline</h2>
+                <div class="flowchart">
+                    <div class="flow-step">
+                        <h3>Step 1: Tokenization</h3>
+                        <div class="content">
+                            Input: "favourable food of the cat is"<br>
+                            Tokens: ["favour", "able", " food", " of", " the", " cat", " is"]
+                        </div>
+                    </div>
+                    <div class="arrow">↓</div>
+
+                    <div class="flow-step">
+                        <h3>Step 2: Token IDs</h3>
+                        <div class="content">
+                            Tokens → Numeric IDs:<br>
+                            [8421, 1234, 2847, 1023, 5643, 3829, 1547]
+                        </div>
+                    </div>
+                    <div class="arrow">↓</div>
+
+                    <div class="flow-step">
+                        <h3>Step 3: Embeddings</h3>
+                        <div class="content">
+                            Each ID → 768-dim vector:<br>
+                            "cat" → [0.21, -0.45, 0.78, ...]<br>
+                            "food" → [0.15, -0.32, 0.61, ...]
+                        </div>
+                    </div>
+                    <div class="arrow">↓</div>
+
+                    <div class="flow-step">
+                        <h3>Step 4: Contextual Processing</h3>
+                        <div class="content">
+                            Multi-head self-attention:<br>
+                            - "cat" attends to "food"<br>
+                            - Relationships strengthened<br>
+                            - 12-96 transformer layers
+                        </div>
+                    </div>
+                    <div class="arrow">↓</div>
+
+                    <div class="flow-step">
+                        <h3>Step 5: Vector Search</h3>
+                        <div class="content">
+                            Find nearby vectors in space:<br>
+                            - Words semantically close to "cat"<br>
+                            - Words related to "food"<br>
+                            - Context: "is" (predicting next token)
+                        </div>
+                    </div>
+                    <div class="arrow">↓</div>
+
+                    <div class="flow-step">
+                        <h3>Step 6: Probability Distribution</h3>
+                        <div class="content">
+                            Output probabilities:<br>
+                            "fish" → 35% ████████████<br>
+                            "meat" → 20% ███████<br>
+                            "tuna" → 15% █████
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vector Space Section -->
+            <div class="vector-section">
+                <h2>2D Vector Space (Simplified from 768 dimensions)</h2>
+                <canvas id="vectorCanvas" width="600" height="600"></canvas>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e74c3c;"></div>
+                        <span>Reference (cat)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #27ae60;"></div>
+                        <span>High Similarity (&gt;0.7)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f39c12;"></div>
+                        <span>Medium (0.4-0.7)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #95a5a6;"></div>
+                        <span>Low (&lt;0.4)</span>
+                    </div>
+                </div>
+
+                <p class="instructions">Hover over vectors to see similarity • Click to lock and compare all distances</p>
+
+                <div class="info-box">
+                    <h4>Cosine Similarity Formula</h4>
+                    <div class="formula">
+                        similarity = (A · B) / (||A|| × ||B||)<br>
+                        Range: -1 (opposite) to +1 (identical)
+                    </div>
+                    <p style="font-size: 12px; color: #555; margin-top: 8px;">
+                        Measures the angle between two vectors. Close vectors (similar meaning) have high cosine similarity.
+                    </p>
+                </div>
+
+                <div class="calculation">
+                    <h4>Live Calculation</h4>
+                    <div id="calcDisplay" style="font-family: 'Courier New', monospace; font-size: 13px; color: #555;">
+                        Hover over or click a vector to see the calculation...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('vectorCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Vector data with 2D coordinates (simulated dimensionality reduction from 768D)
+        const vectors = [
+            // Reference point
+            { word: 'cat', x: 0.05, y: 0.15, ref: true },
+
+            // Animal proteins - close to cat
+            { word: 'fish', x: 0.12, y: 0.22, cluster: 'protein' },
+            { word: 'meat', x: 0.18, y: 0.10, cluster: 'protein' },
+            { word: 'tuna', x: 0.08, y: 0.28, cluster: 'protein' },
+            { word: 'mice', x: -0.02, y: 0.08, cluster: 'protein' },
+            { word: 'chicken', x: 0.22, y: 0.18, cluster: 'protein' },
+            { word: 'salmon', x: 0.15, y: 0.32, cluster: 'protein' },
+            { word: 'milk', x: 0.08, y: -0.05, cluster: 'protein' },
+            { word: 'bird', x: -0.08, y: 0.20, cluster: 'protein' },
+
+            // Plant-based - far from cat
+            { word: 'carrot', x: -0.35, y: -0.25, cluster: 'plant' },
+            { word: 'lettuce', x: -0.42, y: -0.18, cluster: 'plant' },
+            { word: 'grain', x: -0.30, y: -0.38, cluster: 'plant' },
+            { word: 'apple', x: -0.25, y: -0.12, cluster: 'plant' },
+            { word: 'corn', x: -0.38, y: -0.32, cluster: 'plant' },
+            { word: 'spinach', x: -0.48, y: -0.22, cluster: 'plant' },
+
+            // Neutral/Other
+            { word: 'water', x: -0.15, y: -0.42, cluster: 'other' },
+            { word: 'bowl', x: 0.32, y: -0.15, cluster: 'other' },
+            { word: 'treat', x: 0.28, y: 0.05, cluster: 'other' },
+        ];
+
+        let hoveredVector = null;
+        let selectedVector = null;
+
+        // Calculate cosine similarity
+        function cosineSimilarity(v1, v2) {
+            const dotProduct = v1.x * v2.x + v1.y * v2.y;
+            const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+            const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+            return dotProduct / (mag1 * mag2);
+        }
+
+        // Transform coordinate to canvas space
+        function toCanvasX(x) {
+            return (x + 0.6) * (width / 1.2);
+        }
+
+        function toCanvasY(y) {
+            return height - (y + 0.6) * (height / 1.2);
+        }
+
+        // Get color based on similarity
+        function getColorBySimilarity(sim) {
+            if (sim > 0.7) return '#27ae60';
+            if (sim > 0.4) return '#f39c12';
+            return '#95a5a6';
+        }
+
+        // Draw the vector space
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw axes
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 0);
+            ctx.lineTo(width / 2, height);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+            // Axis labels
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = '12px Arial';
+            ctx.fillText('Semantic Feature 1 →', width - 140, height / 2 - 10);
+            ctx.save();
+            ctx.translate(15, 80);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Semantic Feature 2 →', 0, 0);
+            ctx.restore();
+
+            const catVector = vectors.find(v => v.ref);
+
+            // Draw connection lines if vector is selected
+            if (selectedVector && selectedVector !== catVector) {
+                vectors.forEach(v => {
+                    if (v !== selectedVector && !v.ref) {
+                        const sim = cosineSimilarity(selectedVector, v);
+                        const color = getColorBySimilarity(sim);
+
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 1;
+                        ctx.globalAlpha = 0.3;
+                        ctx.beginPath();
+                        ctx.moveTo(toCanvasX(selectedVector.x), toCanvasY(selectedVector.y));
+                        ctx.lineTo(toCanvasX(v.x), toCanvasY(v.y));
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                });
+            }
+
+            // Draw vectors
+            vectors.forEach(v => {
+                const cx = toCanvasX(v.x);
+                const cy = toCanvasY(v.y);
+
+                const sim = cosineSimilarity(catVector, v);
+
+                // Highlight hovered or selected
+                if (v === hoveredVector || v === selectedVector) {
+                    ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Draw connection line to cat for hovered/selected
+                if ((v === hoveredVector || v === selectedVector) && !v.ref) {
+                    const color = getColorBySimilarity(sim);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(toCanvasX(catVector.x), toCanvasY(catVector.y));
+                    ctx.lineTo(cx, cy);
+                    ctx.stroke();
+
+                    // Draw similarity value on line
+                    const midX = (toCanvasX(catVector.x) + cx) / 2;
+                    const midY = (toCanvasY(catVector.y) + cy) / 2;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(midX - 20, midY - 10, 40, 18);
+                    ctx.fillStyle = color;
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(sim.toFixed(2), midX, midY + 4);
+                }
+
+                // Draw circle
+                ctx.beginPath();
+                ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+
+                if (v.ref) {
+                    ctx.fillStyle = '#e74c3c';
+                } else {
+                    ctx.fillStyle = getColorBySimilarity(sim);
+                }
+
+                ctx.fill();
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw label
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = v.ref ? 'bold 13px Arial' : '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(v.word, cx, cy + 22);
+            });
+        }
+
+        // Update calculation display
+        function updateCalculation(v) {
+            const calcDisplay = document.getElementById('calcDisplay');
+            if (!v || v.ref) {
+                calcDisplay.innerHTML = 'Hover over or click a vector to see the calculation...';
+                return;
+            }
+
+            const catVector = vectors.find(vec => vec.ref);
+            const sim = cosineSimilarity(catVector, v);
+
+            const dotProduct = (catVector.x * v.x + catVector.y * v.y).toFixed(4);
+            const magCat = Math.sqrt(catVector.x * catVector.x + catVector.y * catVector.y).toFixed(4);
+            const magV = Math.sqrt(v.x * v.x + v.y * v.y).toFixed(4);
+
+            calcDisplay.innerHTML = `
+                <strong>cat ↔ ${v.word}</strong><br>
+                Dot product: (${catVector.x.toFixed(2)} × ${v.x.toFixed(2)}) + (${catVector.y.toFixed(2)} × ${v.y.toFixed(2)}) = ${dotProduct}<br>
+                Magnitude cat: √(${catVector.x.toFixed(2)}² + ${catVector.y.toFixed(2)}²) = ${magCat}<br>
+                Magnitude ${v.word}: √(${v.x.toFixed(2)}² + ${v.y.toFixed(2)}²) = ${magV}<br>
+                <strong>Cosine Similarity: ${dotProduct} / (${magCat} × ${magV}) = ${sim.toFixed(4)}</strong>
+            `;
+        }
+
+        // Mouse move handler
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            hoveredVector = null;
+
+            for (const v of vectors) {
+                const cx = toCanvasX(v.x);
+                const cy = toCanvasY(v.y);
+                const distance = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
+
+                if (distance < 15) {
+                    hoveredVector = v;
+                    break;
+                }
+            }
+
+            if (!selectedVector) {
+                updateCalculation(hoveredVector);
+            }
+
+            draw();
+        });
+
+        // Click handler
+        canvas.addEventListener('click', (e) => {
+            if (hoveredVector) {
+                selectedVector = selectedVector === hoveredVector ? null : hoveredVector;
+                updateCalculation(selectedVector);
+                draw();
+            }
+        });
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
